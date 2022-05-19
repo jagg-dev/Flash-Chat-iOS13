@@ -32,11 +32,17 @@ class ChatViewController: UIViewController {
     }
     
     func loadMessages() {
-        db.collection(K.FStore.collectionName).getDocuments { querySnapshot, error in
+        db.collection(K.FStore.collectionName)
+            .order(by: K.FStore.dateField)
+            .addSnapshotListener({ querySnapshot, error in
+                
             if let e = error {
                 print("There was an issue retrieving the data from Firestore, \(e)")
+                
             } else {
                 if let snapshotDocuments = querySnapshot?.documents {
+                    self.messages = []
+                    
                     for doc in snapshotDocuments {
                         let data = doc.data()
                         
@@ -53,22 +59,27 @@ class ChatViewController: UIViewController {
                     }
                 }
             }
-        }
+        })
     }
     
     @IBAction func sendPressed(_ sender: UIButton) {
         if let messageBody = messageTextfield.text, let messageSender = Auth.auth().currentUser?.email {
             db.collection(K.FStore.collectionName).addDocument(data: [
                 K.FStore.senderField: messageSender,
-                K.FStore.bodyField: messageBody
+                K.FStore.bodyField: messageBody,
+                K.FStore.dateField: Date().timeIntervalSince1970
             ]) { error in
                 if let e = error {
                     print("There was an error saving the data to Firestore, \(e)")
+                    
                 } else {
                     print("Succesfully saved data")
                 }
             }
         }
+        
+        // Clear the text field
+        self.messageTextfield.text = ""
     }
     
     @IBAction func logOutPressed(_ sender: UIBarButtonItem) {
